@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillSwap - Hedera Version</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --hedera-green: #2DD87F; --hedera-dark: #1A1A1A; --white-glass: rgba(255, 255, 255, 0.98);
+            --text-dark: #333; --text-light: #555;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(-45deg, #2DD87F, #1F3D2F, #1A1A1A); background-size: 400% 400%; animation: gradientShift 15s ease infinite; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
+        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .container { width: 100%; max-width: 480px; background: var(--white-glass); min-height: 95vh; border-radius: 20px; box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); overflow: hidden; display: flex; flex-direction: column; }
+        .header { background: linear-gradient(135deg, #1A1A1A, #000000); color: white; padding: 20px; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-family: 'Comfortaa', cursive; font-size: 24px; }
+        .wallet-btn { background: var(--hedera-green); color: var(--hedera-dark); border: none; padding: 8px 14px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .wallet-btn:disabled { background: #eee; cursor: wait; color: #999; }
+        .account-id { font-size: 12px; background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 15px; font-weight: 500; margin-top: 5px; }
+        .nav-tabs { display: flex; background: white; border-bottom: 1px solid #eee; flex-shrink: 0; }
+        .nav-tab { flex: 1; padding: 15px; text-align: center; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-light); }
+        .nav-tab.active { border-bottom-color: var(--hedera-green); color: var(--hedera-dark); }
+        .page-container { flex-grow: 1; overflow-y: auto; }
+        .page-section { padding: 20px; display: none; }
+        .page-section.active { display: block; }
+        .hedera-button { background: var(--hedera-green); color: black; border: none; padding: 14px; border-radius: 12px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 20px; font-weight: 600; }
+        .card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #f0f0f0; }
+        .status-message { padding: 10px; border-radius: 8px; margin: 10px 0; text-align: center; }
+        .status-info { background: #e3f2fd; color: #1565c0; }
+        .status-success { background: #e8f5e8; color: #2e7d32; }
+        .status-error { background: #ffebee; color: #c62828; }
+        .version-switcher { position: absolute; top: 20px; left: 20px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <<div class="version-switcher">
+    <strong>SkillSwap:</strong> 
+    <a href="index.html" style="color: #764BA2;">Pi Network</a> | 
+    <a href="hedera.html" style="color: #2DD87F;">Hedera</a>
+</div>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div><h1>SkillSwap</h1><p>Powered by Hedera</p></div>
+                <button id="connect-wallet-btn" class="wallet-btn"><i class="fas fa-wallet"></i> Connect Wallet</button>
+            </div>
+        </div>
+
+        <div class="page-container">
+            <div class="card">
+                <h3>Connect to Hedera</h3>
+                <div id="status-message" class="status-message status-info">
+                    Click "Connect Wallet" to begin
+                </div>
+                <div id="connection-info" style="display: none;">
+                    <p><strong>Connected Account:</strong> <span id="account-id"></span></p>
+                    <button id="disconnect-btn" class="hedera-button">Disconnect</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple wallet connection for development
+        const connectWalletBtn = document.getElementById('connect-wallet-btn');
+        const statusMessage = document.getElementById('status-message');
+        const connectionInfo = document.getElementById('connection-info');
+        const accountIdSpan = document.getElementById('account-id');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+
+        let connectedAccount = null;
+
+        async function connectWallet() {
+            try {
+                statusMessage.textContent = "Looking for HashPack...";
+                statusMessage.className = "status-message status-info";
+                
+                // Development mode - simulate connection
+                setTimeout(() => {
+                    simulateConnection();
+                }, 2000);
+                
+            } catch (error) {
+                console.error("Connection error:", error);
+                statusMessage.textContent = "Connection failed. Please try again.";
+                statusMessage.className = "status-message status-error";
+            }
+        }
+
+        function disconnectWallet() {
+            connectedAccount = null;
+            connectionInfo.style.display = 'none';
+            connectWalletBtn.style.display = 'block';
+            statusMessage.textContent = "Disconnected. Click 'Connect Wallet' to reconnect.";
+            statusMessage.className = "status-message status-info";
+        }
+
+        // Development simulation
+        function simulateConnection() {
+            connectedAccount = "0.0.123456";
+            accountIdSpan.textContent = connectedAccount;
+            connectionInfo.style.display = 'block';
+            connectWalletBtn.style.display = 'none';
+            statusMessage.textContent = "Successfully connected to Hedera! (Development Mode)";
+            statusMessage.className = "status-message status-success";
+        }
+
+        // Event listeners
+        connectWalletBtn.addEventListener('click', connectWallet);
+        disconnectBtn.addEventListener('click', disconnectWallet);
+    </script>
+</body>
+</html>
