@@ -44,7 +44,7 @@
             <div class="card">
                 <h3>Hedera Wallet Connection</h3>
                 <div id="status-message" class="status-message status-info">Initializing...</div>
-
+                
                 <div id="connect-area" style="display: none;">
                     <div class="connection-options">
                         <button id="qr-btn" class="hedera-button"><i class="fas fa-qrcode"></i> Scan QR</button>
@@ -70,108 +70,117 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/hashconnect@0.6.2/dist/index.js"></script>
+    
     <script>
-        // All UI element declarations are the same
-        const statusMessage = document.getElementById('status-message');
-        const connectArea = document.getElementById('connect-area');
-        const connectedArea = document.getElementById('connected-area');
-        const accountIdSpan = document.getElementById('account-id');
-        const disconnectBtn = document.getElementById('disconnect-btn');
-        const qrBtn = document.getElementById('qr-btn');
-        const pairingBtn = document.getElementById('pairing-btn');
-        const copyBtn = document.getElementById('copy-btn');
-        const qrContainer = document.getElementById('qr-container');
-        const qrImage = document.getElementById('qr-image');
-        const pairingContainer = document.getElementById('pairing-container');
-        const pairingStringEl = document.getElementById('pairing-string');
+        document.addEventListener('DOMContentLoaded', () => {
+            // All code now runs inside here, ensuring the page is fully loaded first
+            const statusMessage = document.getElementById('status-message');
+            const connectArea = document.getElementById('connect-area');
+            const connectedArea = document.getElementById('connected-area');
+            const accountIdSpan = document.getElementById('account-id');
+            const disconnectBtn = document.getElementById('disconnect-btn');
+            const qrBtn = document.getElementById('qr-btn');
+            const pairingBtn = document.getElementById('pairing-btn');
+            const copyBtn = document.getElementById('copy-btn');
+            const qrContainer = document.getElementById('qr-container');
+            const qrImage = document.getElementById('qr-image');
+            const pairingContainer = document.getElementById('pairing-container');
+            const pairingStringEl = document.getElementById('pairing-string');
 
-        let hashConnect;
-        let pairingString = "";
-        let state = { accountId: "" };
+            let hashConnect;
+            let pairingString = "";
+            let state = { accountId: "" };
 
-        async function initializeApp() {
-            try {
-                hashConnect = new HashConnect(true); // Debug mode on
-
-                const appMetadata = { name: "SkillSwap Marketplace", description: "A decentralized skill marketplace", icon: "" };
-                const initData = await hashConnect.init(appMetadata, "testnet", false);
-                pairingString = initData.pairingString;
-
-                hashConnect.pairingEvent.on(pairingData => {
-                    if (pairingData.accountIds && pairingData.accountIds.length > 0) {
-                        handleSuccessfulConnection(pairingData.accountIds[0]);
+            async function initializeApp() {
+                try {
+                    // Check if the HashConnect library has loaded
+                    if (typeof HashConnect === 'undefined') {
+                        throw new Error('HashConnect library not found. Check network connection.');
                     }
-                });
 
-                if (initData.savedPairings.length > 0) {
-                    handleSuccessfulConnection(initData.savedPairings[0].accountIds[0]);
-                } else {
-                    showConnectionOptions();
+                    hashConnect = new HashConnect(true);
+                    
+                    const appMetadata = { name: "SkillSwap Marketplace", description: "A decentralized skill marketplace", icon: "" };
+                    const initData = await hashConnect.init(appMetadata, "testnet", false);
+                    pairingString = initData.pairingString;
+
+                    hashConnect.pairingEvent.on(pairingData => {
+                        if (pairingData.accountIds && pairingData.accountIds.length > 0) {
+                            handleSuccessfulConnection(pairingData.accountIds[0]);
+                        }
+                    });
+
+                    if (initData.savedPairings.length > 0) {
+                        handleSuccessfulConnection(initData.savedPairings[0].accountIds[0]);
+                    } else {
+                        showConnectionOptions();
+                    }
+                } catch (error) {
+                    console.error("Initialization error:", error);
+                    statusMessage.textContent = `Error: ${error.message}`;
+                    statusMessage.className = "status-message status-error";
                 }
-            } catch (error) {
-                console.error("Initialization error:", error);
-                // *** THIS IS THE IMPORTANT CHANGE ***
-                // We now display the actual error message on the screen.
-                statusMessage.textContent = `Initialization Error: ${error.message}. Please screenshot this message.`;
-                statusMessage.className = "status-message status-error";
             }
-        }
 
-        // The rest of the functions (showConnectionOptions, showQRCode, etc.) are the same.
-        function showConnectionOptions() {
-            statusMessage.textContent = "Connect your wallet to begin.";
-            statusMessage.className = "status-message status-info";
-            connectArea.style.display = 'block';
-            connectedArea.style.display = 'none';
-        }
+            function showConnectionOptions() {
+                statusMessage.textContent = "Connect your wallet to begin.";
+                statusMessage.className = "status-message status-info";
+                connectArea.style.display = 'block';
+                connectedArea.style.display = 'none';
+            }
 
-        function showQRCode() {
-            const qrUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(pairingString)}`;
-            qrImage.src = qrUrl;
-            qrContainer.style.display = 'block';
-            pairingContainer.style.display = 'none';
-            hashConnect.connectToLocalWallet();
-        }
+            function showQRCode() {
+                const qrUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(pairingString)}`;
+                qrImage.src = qrUrl;
+                qrContainer.style.display = 'block';
+                pairingContainer.style.display = 'none';
+                hashConnect.connectToLocalWallet();
+            }
 
-        function showPairingString() {
-            pairingStringEl.value = pairingString;
-            pairingContainer.style.display = 'block';
-            qrContainer.style.display = 'none';
-            hashConnect.connectToLocalWallet();
-        }
+            function showPairingString() {
+                pairingStringEl.value = pairingString;
+                pairingContainer.style.display = 'block';
+                qrContainer.style.display = 'none';
+                hashConnect.connectToLocalWallet();
+            }
 
-        function handleSuccessfulConnection(accountId) {
-            state.accountId = accountId;
-            accountIdSpan.textContent = state.accountId;
-            connectArea.style.display = 'none';
-            connectedArea.style.display = 'block';
-            statusMessage.innerHTML = `<i class="fas fa-check-circle"></i> Wallet Connected!`;
-            statusMessage.className = "status-message status-success";
-        }
 
-        async function disconnectWallet() {
-            try {
-                const pairings = hashConnect.hcData.pairingData;
-                if (pairings && pairings.length > 0) {
-                    await hashConnect.disconnect(pairings[0].topic);
+
+            function handleSuccessfulConnection(accountId) {
+                state.accountId = accountId;
+                accountIdSpan.textContent = state.accountId;
+                connectArea.style.display = 'none';
+                connectedArea.style.display = 'block';
+                statusMessage.innerHTML = `<i class="fas fa-check-circle"></i> Wallet Connected!`;
+                statusMessage.className = "status-message status-success";
+            }
+
+            async function disconnectWallet() {
+                try {
+                    const pairings = hashConnect.hcData.pairingData;
+                    if (pairings && pairings.length > 0) {
+                        await hashConnect.disconnect(pairings[0].topic);
+                    }
+                } catch (error) {
+                    console.error("Error disconnecting:", error);
                 }
-            } catch (error) {
-                console.error("Error disconnecting:", error);
+                state.accountId = "";
+                await initializeApp();
             }
-            state.accountId = "";
-            await initializeApp();
-        }
 
-        qrBtn.addEventListener('click', showQRCode);
-        pairingBtn.addEventListener('click', showPairingString);
-        copyBtn.addEventListener('click', () => {
-            pairingStringEl.select();
-            document.execCommand('copy');
-            alert("Pairing code copied! Open HashPack and paste this code to connect.");
+            // --- Attach Event Listeners ---
+            qrBtn.addEventListener('click', showQRCode);
+            pairingBtn.addEventListener('click', showPairingString);
+            copyBtn.addEventListener('click', () => {
+                pairingStringEl.select();
+                document.execCommand('copy');
+                alert("Pairing code copied! Open HashPack and paste this code to connect.");
+            });
+            disconnectBtn.addEventListener('click', disconnectWallet);
+
+            // --- Start the App ---
+            initializeApp();
         });
-        disconnectBtn.addEventListener('click', disconnectWallet);
-
-        document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 </html>
