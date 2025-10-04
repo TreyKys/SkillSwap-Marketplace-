@@ -103,200 +103,157 @@
     </div>
 
     <!-- Multiple CDN fallbacks for HashConnect -->
-    <script>
-        // HashConnect loading with multiple fallbacks
-        function loadHashConnect() {
-            const loadingSpinner = document.getElementById('loading-spinner');
-            const libraryError = document.getElementById('library-error');
-            const statusMessage = document.getElementById('status-message');
+    <!-- Load HashConnect from reliable CDN -->
+<script src="https://unpkg.com/hashconnect@0.7.12/dist/hashconnect.js"></script>
+
+<script>
+    // --- Simple HashConnect Implementation ---
+    const connectWalletBtn = document.getElementById('connect-wallet-btn');
+    const statusMessage = document.getElementById('status-message');
+    const connectionOptions = document.getElementById('connection-options');
+    const qrContainer = document.getElementById('qr-container');
+    const pairingContainer = document.getElementById('pairing-container');
+    const connectionInfo = document.getElementById('connection-info');
+    const accountIdSpan = document.getElementById('account-id');
+    const disconnectBtn = document.getElementById('disconnect-btn');
+    const qrBtn = document.getElementById('qr-btn');
+    const pairingBtn = document.getElementById('pairing-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const qrImage = document.getElementById('qr-image');
+    const pairingStringEl = document.getElementById('pairing-string');
+
+    let hashConnect;
+    let pairingString = "";
+
+    async function initializeApp() {
+        try {
+            // Check if HashConnect is available
+            if (typeof HashConnect === 'undefined') {
+                throw new Error('HashConnect library failed to load');
+            }
+
+            statusMessage.textContent = "Initializing HashConnect...";
             
-            loadingSpinner.style.display = 'block';
-            libraryError.style.display = 'none';
-            statusMessage.textContent = 'Loading HashConnect library...';
+            // Initialize HashConnect - CHANGED TO TRUE FOR DEBUG MODE
+            hashConnect = new HashConnect(true); // true for debug mode
+            
+            const appMetadata = {
+                name: "SkillSwap Marketplace",
+                description: "Decentralized skill marketplace",
+                icon: "https://skillswap.com/icon.png"
+            };
 
-            // Try multiple CDNs in sequence
-            const cdns = [
-                'https://unpkg.com/hashconnect@0.7.12/dist/index.js',
-                'https://cdn.jsdelivr.net/npm/hashconnect@0.7.12/dist/index.js',
-                'https://www.unpkg.com/hashconnect@0.7.12/dist/index.js'
-            ];
+            const initData = await hashConnect.init(appMetadata, "testnet", false);
+            pairingString = initData.pairingString;
 
-            let currentCdnIndex = 0;
-
-            function tryNextCDN() {
-                if (currentCdnIndex >= cdns.length) {
-                    // All CDNs failed
-                    loadingSpinner.style.display = 'none';
-                    libraryError.style.display = 'block';
-                    statusMessage.textContent = 'Error: HashConnect library not found. Check network connection.';
-                    statusMessage.className = 'status-message status-error';
-                    return;
-                }
-
-                const script = document.createElement('script');
-                script.src = cdns[currentCdnIndex];
-                
-                script.onload = function() {
-                    loadingSpinner.style.display = 'none';
-                    if (typeof HashConnect !== 'undefined') {
-                        statusMessage.textContent = 'HashConnect loaded successfully!';
-                        initializeApp();
-                    } else {
-                        tryNextCDN();
-                    }
-                };
-                
-                script.onerror = function() {
-                    currentCdnIndex++;
-                    tryNextCDN();
-                };
-                
-                document.head.appendChild(script);
+            // Check for existing connections
+            if (initData.savedPairings.length > 0) {
+                const savedPairing = initData.savedPairings[0];
+                handleSuccessfulConnection(savedPairing.accountIds[0]);
+            } else {
+                showConnectionReady();
             }
 
-            tryNextCDN();
+            // Listen for new pairings
+            hashConnect.pairingEvent.on((pairingData) => {
+                if (pairingData.accountIds && pairingData.accountIds.length > 0) {
+                    handleSuccessfulConnection(pairingData.accountIds[0]);
+                }
+            });
+
+        } catch (error) {
+            console.error("Initialization error:", error);
+            statusMessage.textContent = "Failed to load wallet connection. Please refresh the page.";
+            statusMessage.className = "status-message status-error";
+        }
+    }
+
+    function showConnectionReady() {
+        statusMessage.textContent = "Ready to connect! Choose connection method:";
+        connectionOptions.style.display = 'flex';
+    }
+
+    function showQRCode() {
+        // Simple QR code generation using Google Charts API
+        const qrUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(pairingString)}`;
+        qrImage.src = qrUrl;
+        qrContainer.style.display = 'block';
+        pairingContainer.style.display = 'none';
+        
+        // Try to open HashConnect
+        if (hashConnect) {
+            hashConnect.connectToLocalWallet();
+        }
+    }
+
+    function showPairingString() {
+        pairingStringEl.value = pairingString;
+        pairingContainer.style.display = 'block';
+        qrContainer.style.display = 'none';
+        
+        // Try to open HashConnect
+        if (hashConnect) {
+            hashConnect.connectToLocalWallet();
+        }
+    }
+
+    function copyPairingString() {
+        pairingStringEl.select();
+        document.execCommand('copy');
+        alert("Pairing code copied! Open HashPack and paste this code to connect.");
+    }
+
+    function handleSuccessfulConnection(accountId) {
+        accountIdSpan.textContent = accountId;
+        connectionInfo.style.display = 'block';
+        connectionOptions.style.display = 'none';
+        qrContainer.style.display = 'none';
+        pairingContainer.style.display = 'none';
+        connectWalletBtn.style.display = 'none';
+        
+        statusMessage.innerHTML = `<i class="fas fa-check-circle"></i> Connected to Hedera!`;
+        statusMessage.className = "status-message status-success";
+    }
+
+    function disconnectWallet() {
+        if (hashConnect) {
+            // Try to disconnect properly
+            try {
+                const pairings = hashConnect.hcData.pairingData;
+                if (pairings && pairings.length > 0) {
+                    hashConnect.disconnect(pairings[0].topic);
+                }
+            } catch (error) {
+                console.error("Error disconnecting:", error);
+            }
         }
 
-        // Initialize the app once HashConnect is loaded
-        function initializeApp() {
-            const statusMessage = document.getElementById('status-message');
-            const connectWalletBtn = document.getElementById('connect-wallet-btn');
-            const connectionOptions = document.getElementById('connection-options');
-            const qrContainer = document.getElementById('qr-container');
-            const pairingContainer = document.getElementById('pairing-container');
-            const connectionInfo = document.getElementById('connection-info');
-            const accountIdSpan = document.getElementById('account-id');
-            const disconnectBtn = document.getElementById('disconnect-btn');
-            const qrBtn = document.getElementById('qr-btn');
-            const pairingBtn = document.getElementById('pairing-btn');
-            const copyBtn = document.getElementById('copy-btn');
-            const qrImage = document.getElementById('qr-image');
-            const pairingStringEl = document.getElementById('pairing-string');
+        // Reset UI
+        connectionInfo.style.display = 'none';
+        connectionOptions.style.display = 'none';
+        qrContainer.style.display = 'none';
+        pairingContainer.style.display = 'none';
+        connectWalletBtn.style.display = 'block';
+        connectWalletBtn.disabled = false;
+        
+        statusMessage.textContent = "Disconnected. Click 'Connect Wallet' to reconnect.";
+        statusMessage.className = "status-message status-info";
 
-            let hashConnect;
-            let pairingString = "";
+        // Reinitialize for new connection
+        setTimeout(initializeApp, 1000);
+    }
 
-            async function initHashConnect() {
-                try {
-                    statusMessage.textContent = "Initializing HashConnect...";
-                    
-                    // Initialize HashConnect
-                    hashConnect = new HashConnect(false); // false for production
-                    
-                    const appMetadata = {
-                        name: "SkillSwap Marketplace",
-                        description: "Decentralized skill marketplace",
-                        icon: "https://www.hedera.com/favicon.ico"
-                    };
+    // Event listeners
+    connectWalletBtn.addEventListener('click', initializeApp);
+    qrBtn.addEventListener('click', showQRCode);
+    pairingBtn.addEventListener('click', showPairingString);
+    copyBtn.addEventListener('click', copyPairingString);
+    disconnectBtn.addEventListener('click', disconnectWallet);
 
-                    const initData = await hashConnect.init(appMetadata, "testnet", false);
-                    pairingString = initData.pairingString;
-
-                    // Check for existing connections
-                    if (initData.savedPairings.length > 0) {
-                        const savedPairing = initData.savedPairings[0];
-                        handleSuccessfulConnection(savedPairing.accountIds[0]);
-                    } else {
-                        showConnectionReady();
-                    }
-
-                    // Listen for new pairings
-                    hashConnect.pairingEvent.on((pairingData) => {
-                        if (pairingData.accountIds && pairingData.accountIds.length > 0) {
-                            handleSuccessfulConnection(pairingData.accountIds[0]);
-                        }
-                    });
-
-                } catch (error) {
-                    console.error("Initialization error:", error);
-                    statusMessage.textContent = "Failed to initialize wallet connection. Please refresh the page.";
-                    statusMessage.className = "status-message status-error";
-                }
-            }
-
-            function showConnectionReady() {
-                statusMessage.textContent = "Ready to connect! Choose connection method:";
-                connectionOptions.style.display = 'flex';
-            }
-
-            function showQRCode() {
-                const qrUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(pairingString)}`;
-                qrImage.src = qrUrl;
-                qrContainer.style.display = 'block';
-                pairingContainer.style.display = 'none';
-                
-                if (hashConnect) {
-                    hashConnect.connectToLocalWallet();
-                }
-            }
-
-            function showPairingString() {
-                pairingStringEl.value = pairingString;
-                pairingContainer.style.display = 'block';
-                qrContainer.style.display = 'none';
-                
-                if (hashConnect) {
-                    hashConnect.connectToLocalWallet();
-                }
-            }
-
-            function copyPairingString() {
-                pairingStringEl.select();
-                document.execCommand('copy');
-                alert("Pairing code copied! Open HashPack and paste this code to connect.");
-            }
-
-            function handleSuccessfulConnection(accountId) {
-                accountIdSpan.textContent = accountId;
-                connectionInfo.style.display = 'block';
-                connectionOptions.style.display = 'none';
-                qrContainer.style.display = 'none';
-                pairingContainer.style.display = 'none';
-                connectWalletBtn.style.display = 'none';
-                
-                statusMessage.innerHTML = `<i class="fas fa-check-circle"></i> Connected to Hedera!`;
-                statusMessage.className = "status-message status-success";
-            }
-
-            function disconnectWallet() {
-                if (hashConnect) {
-                    try {
-                        const pairings = hashConnect.hcData.pairingData;
-                        if (pairings && pairings.length > 0) {
-                            hashConnect.disconnect(pairings[0].topic);
-                        }
-                    } catch (error) {
-                        console.error("Error disconnecting:", error);
-                    }
-                }
-
-                connectionInfo.style.display = 'none';
-                connectionOptions.style.display = 'none';
-                qrContainer.style.display = 'none';
-                pairingContainer.style.display = 'none';
-                connectWalletBtn.style.display = 'block';
-                connectWalletBtn.disabled = false;
-                
-                statusMessage.textContent = "Disconnected. Click 'Connect Wallet' to reconnect.";
-                statusMessage.className = "status-message status-info";
-
-                setTimeout(initHashConnect, 1000);
-            }
-
-            // Event listeners
-            connectWalletBtn.addEventListener('click', initHashConnect);
-            qrBtn.addEventListener('click', showQRCode);
-            pairingBtn.addEventListener('click', showPairingString);
-            copyBtn.addEventListener('click', copyPairingString);
-            disconnectBtn.addEventListener('click', disconnectWallet);
-            document.getElementById('retry-load').addEventListener('click', loadHashConnect);
-
-            // Initialize HashConnect
-            statusMessage.textContent = "Click 'Connect Wallet' to start";
-        }
-
-        // Start loading when page loads
-        document.addEventListener('DOMContentLoaded', loadHashConnect);
-    </script>
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', function() {
+        statusMessage.textContent = "Click 'Connect Wallet' to start";
+    });
+</script>
 </body>
 </html>
