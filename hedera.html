@@ -107,7 +107,9 @@
 <script src="https://unpkg.com/hashconnect@0.7.12/dist/hashconnect.js"></script>
 
 <script>
-    // --- Simple HashConnect Implementation ---
+    console.log("🔧 Script loaded - starting HashConnect initialization...");
+
+    // --- Enhanced HashConnect Implementation with Debugging ---
     const connectWalletBtn = document.getElementById('connect-wallet-btn');
     const statusMessage = document.getElementById('status-message');
     const connectionOptions = document.getElementById('connection-options');
@@ -125,85 +127,115 @@
     let hashConnect;
     let pairingString = "";
 
+    // Enhanced initialization with detailed error handling
     async function initializeApp() {
+        console.log("🔄 initializeApp() called");
+        
         try {
             // Check if HashConnect is available
+            console.log("📦 Checking HashConnect library...");
             if (typeof HashConnect === 'undefined') {
-                throw new Error('HashConnect library failed to load');
+                throw new Error('HashConnect library failed to load from CDN');
             }
+            console.log("✅ HashConnect library loaded successfully");
 
             statusMessage.textContent = "Initializing HashConnect...";
             
-            // Initialize HashConnect - CHANGED TO TRUE FOR DEBUG MODE
-            hashConnect = new HashConnect(true); // true for debug mode
-            
+            console.log("🔄 Creating HashConnect instance...");
+            // Initialize HashConnect with debug mode
+            hashConnect = new HashConnect(true);
+            console.log("✅ HashConnect instance created");
+
             const appMetadata = {
                 name: "SkillSwap Marketplace",
                 description: "Decentralized skill marketplace",
-                icon: "https://skillswap.com/icon.png"
+                icon: "https://www.hedera.com/favicon.ico" // Using a real, accessible icon
             };
 
+            console.log("🔄 Calling hashConnect.init()...");
+            // Initialize with testnet
             const initData = await hashConnect.init(appMetadata, "testnet", false);
+            console.log("✅ hashConnect.init() successful", initData);
+            
             pairingString = initData.pairingString;
+            console.log("📋 Pairing string received:", pairingString.substring(0, 50) + "...");
 
             // Check for existing connections
             if (initData.savedPairings.length > 0) {
+                console.log("🔗 Found existing pairing:", initData.savedPairings[0]);
                 const savedPairing = initData.savedPairings[0];
                 handleSuccessfulConnection(savedPairing.accountIds[0]);
             } else {
+                console.log("🆕 No existing pairings found");
                 showConnectionReady();
             }
 
             // Listen for new pairings
+            console.log("👂 Setting up pairing event listener...");
             hashConnect.pairingEvent.on((pairingData) => {
+                console.log("🎉 Pairing event received:", pairingData);
                 if (pairingData.accountIds && pairingData.accountIds.length > 0) {
                     handleSuccessfulConnection(pairingData.accountIds[0]);
                 }
             });
 
         } catch (error) {
-            console.error("Initialization error:", error);
-            statusMessage.textContent = "Failed to load wallet connection. Please refresh the page.";
+            console.error("❌ Initialization error:", error);
+            console.error("🔍 Error details:", {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
+            
+            statusMessage.innerHTML = `
+                <strong>Connection Failed:</strong><br>
+                ${error.message}<br>
+                <small>Check console (F12) for details</small>
+            `;
             statusMessage.className = "status-message status-error";
         }
     }
 
     function showConnectionReady() {
+        console.log("✅ Showing connection options");
         statusMessage.textContent = "Ready to connect! Choose connection method:";
         connectionOptions.style.display = 'flex';
     }
 
     function showQRCode() {
-        // Simple QR code generation using Google Charts API
+        console.log("📷 Showing QR code");
         const qrUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(pairingString)}`;
         qrImage.src = qrUrl;
         qrContainer.style.display = 'block';
         pairingContainer.style.display = 'none';
         
-        // Try to open HashConnect
         if (hashConnect) {
+            console.log("🔗 Attempting to connect to local wallet...");
             hashConnect.connectToLocalWallet();
         }
     }
 
     function showPairingString() {
+        console.log("📋 Showing pairing string");
         pairingStringEl.value = pairingString;
         pairingContainer.style.display = 'block';
         qrContainer.style.display = 'none';
         
-        // Try to open HashConnect
         if (hashConnect) {
+            console.log("🔗 Attempting to connect to local wallet...");
             hashConnect.connectToLocalWallet();
         }
     }
 
     function copyPairingString() {
+        console.log("📋 Copying pairing string to clipboard");
         pairingStringEl.select();
         document.execCommand('copy');
         alert("Pairing code copied! Open HashPack and paste this code to connect.");
     }
 
     function handleSuccessfulConnection(accountId) {
+        console.log("🎉 Connection successful with account:", accountId);
         accountIdSpan.textContent = accountId;
         connectionInfo.style.display = 'block';
         connectionOptions.style.display = 'none';
@@ -216,8 +248,8 @@
     }
 
     function disconnectWallet() {
+        console.log("🔌 Disconnecting wallet...");
         if (hashConnect) {
-            // Try to disconnect properly
             try {
                 const pairings = hashConnect.hcData.pairingData;
                 if (pairings && pairings.length > 0) {
@@ -252,8 +284,12 @@
 
     // Initialize on load
     document.addEventListener('DOMContentLoaded', function() {
+        console.log("🚀 DOM loaded - ready for connections");
         statusMessage.textContent = "Click 'Connect Wallet' to start";
     });
-</script>
-</body>
+
+    // Make sure HashConnect is available globally for debugging
+    window.HashConnect = HashConnect;
+    window.hashConnect = hashConnect;
+</script></body>
 </html>
