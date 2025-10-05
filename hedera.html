@@ -17,12 +17,11 @@
         .header p { font-size: 12px; opacity: 0.8; margin-top: 4px; }
         .page-container { flex-grow: 1; overflow-y: auto; padding: 20px; }
         .card { background: white; padding: 20px; border-radius: 15px; }
-        .hedera-button { background: var(--hedera-green); color: black; border: none; padding: 14px; border-radius: 12px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 15px; font-weight: 600; }
+        .hedera-button { background: var(--hedera-green); color: black; border: none; padding: 14px; border-radius: 12px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .status-message { padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center; word-break: break-word; }
         .status-info { background: #e3f2fd; color: #1565c0; }
         .status-success { background: #e8f5e8; color: #2e7d32; }
         .status-error { background: #ffebee; color: #c62828; }
-        textarea { width: 100%; height: 80px; margin: 10px 0; padding: 10px; border-radius: 5px; border: 1px solid #ccc; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -34,11 +33,9 @@
         <div class="page-container">
             <div class="card">
                 <h3>Wallet Connection</h3>
-                <div id="status-message" class="status-message status-info">Initializing...</div>
-                <div id="connect-area" style="display: none;">
-                    <p>Copy the code and paste it into HashPack to connect.</p>
-                    <textarea id="pairing-string" readonly></textarea>
-                    <button id="copy-btn" class="hedera-button">Copy Pairing Code</button>
+                <div id="status-message" class="status-message status-info">Ready to connect.</div>
+                <div id="connect-area">
+                     <button id="connect-btn" class="hedera-button"><i class="fas fa-wallet"></i> Connect Wallet</button>
                 </div>
                 <div id="connected-area" style="display: none;">
                     <p><strong>Connected Account:</strong></p>
@@ -49,90 +46,72 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/hashconnect@2.1.2/dist/index.js"></script>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const statusMessage = document.getElementById('status-message');
-            const connectArea = document.getElementById('connect-area');
-            const connectedArea = document.getElementById('connected-area');
-            const accountIdSpan = document.getElementById('account-id');
-            const disconnectBtn = document.getElementById('disconnect-btn');
-            const copyBtn = document.getElementById('copy-btn');
-            const pairingStringEl = document.getElementById('pairing-string');
+    <script type="module">
+        import { createWeb3Modal, defaultWagmiConfig } from 'https://esm.sh/@web3modal/wagmi/vue'
+        import { mainnet, arbitrum } from 'https://esm.sh/viem/chains'
+        import { reconnect, watchAccount, disconnect } from 'https://esm.sh/@wagmi/core'
 
-            if (typeof HashConnect === 'undefined') {
-                statusMessage.textContent = "Error: HashConnect library failed to load. The CDN link is broken.";
-                statusMessage.className = "status-message status-error";
-                return;
+        // 1. Get project ID from https://cloud.walletconnect.com
+        const projectId = 'd5b51a566a7b337836b6d51a6659f8a3' // This is a public demo ID
+
+        // 2. Create wagmiConfig
+        const metadata = {
+          name: 'SkillSwap Marketplace',
+          description: 'A decentralized skill marketplace on Hedera',
+          url: 'https://hederaskillswap.netlify.app',
+          icons: ['https://avatars.githubusercontent.com/u/37784886']
+        }
+
+        // NOTE: We list standard EVM chains here, but WalletConnect will allow connection to Hedera via HashPack.
+        const chains = [mainnet, arbitrum] 
+        const wagmiConfig = defaultWagmiConfig({ chains, projectId, metadata })
+
+        // 3. Create modal
+        const modal = createWeb3Modal({ wagmiConfig, projectId, chains })
+
+        // --- App Logic ---
+        const connectBtn = document.getElementById('connect-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const connectArea = document.getElementById('connect-area');
+        const connectedArea = document.getElementById('connected-area');
+        const accountIdSpan = document.getElementById('account-id');
+        const statusMessage = document.getElementById('status-message');
+
+        async function initialize() {
+            try {
+                await reconnect(wagmiConfig);
+            } catch (err) {
+                console.error("Reconnect failed:", err);
             }
+        }
 
-            let hashConnect;
-            let state = { accountId: "" };
-            const appMetadata = { name: "SkillSwap Marketplace", description: "A decentralized skill marketplace", icon: "" };
-
-            function setupEvents() {
-                hashConnect.pairingEvent.on(pairingData => {
-                    if (pairingData.accountIds && pairingData.accountIds.length > 0) {
-                        handleSuccessfulConnection(pairingData.accountIds[0]);
-                    }
-                });
-            }
-            
-            async function initializeApp() {
-                try {
-                    hashConnect = new HashConnect(true);
-                    setupEvents();
-                    const initData = await hashConnect.init(appMetadata, "testnet", false);
-                    
-                    if (initData.savedPairings.length > 0) {
-                        handleSuccessfulConnection(initData.savedPairings[0].accountIds[0]);
-                    } else {
-                        pairingStringEl.value = initData.pairingString;
-                        showConnectionOptions();
-                    }
-                } catch (error) {
-                    console.error("Initialization error:", error);
-                    statusMessage.textContent = `Error: ${error.message}. Please use a normal (non-incognito) browser tab.`;
-                    statusMessage.className = "status-message status-error";
-                }
-            }
-
-            function showConnectionOptions() {
-                statusMessage.textContent = "Ready to connect.";
-                connectArea.style.display = 'block';
-                connectedArea.style.display = 'none';
-            }
-
-            function handleSuccessfulConnection(accountId) {
-                state.accountId = accountId;
-                accountIdSpan.textContent = state.accountId;
+        function handleConnect(state) {
+            if (state.isConnected && state.address) {
+                // NOTE: For Hedera, the address from WalletConnect might be an EVM address.
+                // The actual Account ID is usually retrieved in a follow-up step.
+                // For now, we display what we get.
+                accountIdSpan.textContent = state.address;
                 connectArea.style.display = 'none';
                 connectedArea.style.display = 'block';
                 statusMessage.innerHTML = `<i class="fas fa-check-circle"></i> Wallet Connected!`;
                 statusMessage.className = "status-message status-success";
-            }
-
-            async function disconnectWallet() {
-                const pairings = hashConnect.hcData.pairingData;
-                if (pairings && pairings.length > 0) {
-                    await hashConnect.disconnect(pairings[0].topic);
-                }
-                state.accountId = "";
+            } else {
                 connectedArea.style.display = 'none';
-                statusMessage.textContent = 'Initializing...';
-                initializeApp();
+                connectArea.style.display = 'block';
+                statusMessage.textContent = 'Ready to connect.';
+                statusMessage.className = "status-message status-info";
             }
+        }
 
-            copyBtn.addEventListener('click', () => {
-                pairingStringEl.select();
-                document.execCommand('copy');
-                alert("Pairing code copied! Open HashPack, go to 'Connect DApp' and paste the code.");
-            });
-            disconnectBtn.addEventListener('click', disconnectWallet);
+        // Watch for connection changes and update the UI
+        watchAccount(wagmiConfig, { onChange: handleConnect });
 
-            initializeApp();
-        });
+        // Set up button listeners
+        connectBtn.addEventListener('click', () => modal.open());
+        disconnectBtn.addEventListener('click', () => disconnect(wagmiConfig));
+
+        // Initialize on page load
+        initialize();
     </script>
 </body>
 </html>
