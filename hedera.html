@@ -49,8 +49,8 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/hashconnect@2.1.2/dist/index.min.js"></script>
-
+    <script src="https://unpkg.com/hashconnect@2.1.2/dist/index.js"></script>
+    
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const statusMessage = document.getElementById('status-message');
@@ -61,11 +61,10 @@
             const copyBtn = document.getElementById('copy-btn');
             const pairingStringEl = document.getElementById('pairing-string');
 
-            // *** FALLBACK CHECK TO ENSURE LIBRARY LOADED ***
             if (typeof HashConnect === 'undefined') {
-                statusMessage.textContent = "Error: HashConnect library failed to load. Please check your network connection and refresh.";
+                statusMessage.textContent = "Error: HashConnect library failed to load. The CDN link is broken.";
                 statusMessage.className = "status-message status-error";
-                return; // Stop the script if the library is missing
+                return;
             }
 
             let hashConnect;
