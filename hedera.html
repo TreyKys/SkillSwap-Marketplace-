@@ -3,237 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillSwap - Hedera Version</title>
+    <title>SkillSwap - Hedera</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --hedera-green: #2DD87F; --hedera-dark: #1A1A1A; --white-glass: rgba(255, 255, 255, 0.98);
-            --text-dark: #333; --text-light: #555;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Poppins', sans-serif; background: linear-gradient(-45deg, #2DD87F, #1F3D2F, #1A1A1A); background-size: 400% 400%; animation: gradientShift 15s ease infinite; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
-        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        :root { --hedera-green: #2DD87F; --hedera-dark: #1A1A1A; --white-glass: rgba(255, 255, 255, 0.98); }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(-45deg, #2DD87F, #1F3D2F, #1A1A1A); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; margin: 0; }
         .container { width: 100%; max-width: 480px; background: var(--white-glass); min-height: 95vh; border-radius: 20px; box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37); overflow: hidden; display: flex; flex-direction: column; }
-        .header { background: linear-gradient(135deg, #1A1A1A, #000000); color: white; padding: 20px; }
-        .header-content { display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-family: 'Comfortaa', cursive; font-size: 24px; }
-        .wallet-btn { background: var(--hedera-green); color: var(--hedera-dark); border: none; padding: 8px 14px; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-        .wallet-btn:disabled { background: #eee; cursor: wait; color: #999; }
-        .account-id { font-size: 12px; background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 15px; font-weight: 500; margin-top: 5px; }
-        .nav-tabs { display: flex; background: white; border-bottom: 1px solid #eee; flex-shrink: 0; }
-        .nav-tab { flex: 1; padding: 15px; text-align: center; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-light); }
-        .nav-tab.active { border-bottom-color: var(--hedera-green); color: var(--hedera-dark); }
-        .page-container { flex-grow: 1; overflow-y: auto; }
-        .page-section { padding: 20px; display: none; }
-        .page-section.active { display: block; }
-        .hedera-button { background: var(--hedera-green); color: black; border: none; padding: 14px; border-radius: 12px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 20px; font-weight: 600; }
-        .card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #f0f0f0; }
-        .status-message { padding: 10px; border-radius: 8px; margin: 10px 0; text-align: center; }
+        .header { background: linear-gradient(135deg, #1A1A1A, #000000); color: white; padding: 20px; text-align: center; }
+        .page-container { flex-grow: 1; overflow-y: auto; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 15px; }
+        .hedera-button { background: var(--hedera-green); color: black; border: none; padding: 14px; border-radius: 12px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 15px; font-weight: 600; }
+        .status-message { padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center; word-break: break-word; }
         .status-info { background: #e3f2fd; color: #1565c0; }
         .status-success { background: #e8f5e8; color: #2e7d32; }
         .status-error { background: #ffebee; color: #c62828; }
-        .version-switcher { position: absolute; top: 20px; left: 20px; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 10px; }
-        .connection-options { display: flex; gap: 10px; margin-top: 15px; }
-        .connection-options button { flex: 1; }
-        .library-loading { text-align: center; padding: 20px; }
-        .retry-button { background: #ff6b35; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-top: 10px; }
+        textarea { width: 100%; height: 80px; margin: 10px 0; padding: 10px; border-radius: 5px; border: 1px solid #ccc; word-break: break-all; }
     </style>
 </head>
 <body>
-    <div class="version-switcher">
-        <strong>SkillSwap:</strong> 
-        <a href="/" style="color: #764BA2;">Pi Network</a> | 
-        <a href="/hedera.html" style="color: #2DD87F;">Hedera</a>
-    </div>
-
     <div class="container">
-        <div class="header">
-            <div class="header-content">
-                <div><h1>SkillSwap</h1><p>Powered by Hedera</p></div>
-                <button id="connect-wallet-btn" class="wallet-btn"><i class="fas fa-wallet"></i> Connect Wallet</button>
-            </div>
-        </div>
-
+        <div class="header"><h1>SkillSwap <span style="color: var(--hedera-green);">Hedera</span></h1></div>
         <div class="page-container">
             <div class="card">
-                <h3>Connect to Hedera</h3>
-                <div id="status-message" class="status-message status-info">
-                    Loading HashConnect library...
+                <h3>Wallet Connection</h3>
+                <div id="status-message" class="status-message status-info">Initializing...</div>
+                <div id="connect-area" style="display: none;">
+                    <p>Copy the code and paste it into HashPack to connect.</p>
+                    <textarea id="pairing-string" readonly></textarea>
+                    <button id="copy-btn" class="hedera-button">Copy Pairing Code</button>
                 </div>
-
-                <div id="library-loading" class="library-loading">
-                    <div id="loading-spinner" style="display: none;">
-                        <i class="fas fa-spinner fa-spin fa-2x"></i>
-                        <p>Loading HashConnect...</p>
-                    </div>
-                    <div id="library-error" style="display: none;">
-                        <i class="fas fa-exclamation-triangle fa-2x" style="color: #ff6b35;"></i>
-                        <p>HashConnect library failed to load</p>
-                        <button id="retry-load" class="retry-button">Retry Loading</button>
-                    </div>
-                </div>
-                
-                <div id="connection-options" class="connection-options" style="display: none;">
-                    <button id="qr-btn" class="hedera-button"><i class="fas fa-qrcode"></i> QR Code</button>
-                    <button id="pairing-btn" class="hedera-button"><i class="fas fa-copy"></i> Pairing Code</button>
-                </div>
-
-                <div id="qr-container" style="display: none; text-align: center;">
-                    <p><strong>Scan with HashPack:</strong></p>
-                    <img id="qr-image" style="max-width: 200px; margin: 10px 0;">
-                </div>
-
-                <div id="pairing-container" style="display: none;">
-                    <p><strong>Copy this code to HashPack:</strong></p>
-                    <textarea id="pairing-string" style="width: 100%; height: 60px; margin: 10px 0; padding: 10px; border-radius: 5px; border: 1px solid #ccc;" readonly></textarea>
-                    <button id="copy-btn" class="hedera-button"><i class="fas fa-copy"></i> Copy Code</button>
-                </div>
-
-                <div id="connection-info" style="display: none;">
-                    <p><strong>Connected Account:</strong> <span id="account-id"></span></p>
-                    <button id="disconnect-btn" class="hedera-button" style="background: #ff4444; color: white;">
-                        <i class="fas fa-sign-out-alt"></i> Disconnect Wallet
-                    </button>
+                <div id="connected-area" style="display: none;">
+                    <p><strong>Connected Account:</strong></p>
+                    <p id="account-id" style="font-weight: bold; word-break: break-all;"></p>
+                    <button id="disconnect-btn" class="hedera-button" style="background: #ff4444; color: white;">Disconnect</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Multiple CDN fallbacks for HashConnect -->
-    <!-- Load the Hedera Wallet Connect library -->
-<script src="https://unpkg.com/hedera-wallet-connect-js@latest/dist/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hashconnect@latest/dist/index.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const statusMessage = document.getElementById('status-message');
+            const connectArea = document.getElementById('connect-area');
+            const connectedArea = document.getElementById('connected-area');
+            const accountIdSpan = document.getElementById('account-id');
+            const disconnectBtn = document.getElementById('disconnect-btn');
+            const copyBtn = document.getElementById('copy-btn');
+            const pairingStringEl = document.getElementById('pairing-string');
 
-<script>
-    // --- Hedera Wallet Connect Implementation ---
-    const connectWalletBtn = document.getElementById('connect-wallet-btn');
-    const statusMessage = document.getElementById('status-message');
-    const connectionOptions = document.getElementById('connection-options');
-    const qrContainer = document.getElementById('qr-container');
-    const pairingContainer = document.getElementById('pairing-container');
-    const connectionInfo = document.getElementById('connection-info');
-    const accountIdSpan = document.getElementById('account-id');
-    const disconnectBtn = document.getElementById('disconnect-btn');
+            let hashConnect;
+            let state = { accountId: "" };
+            const appMetadata = { name: "SkillSwap Marketplace", description: "A decentralized skill marketplace", icon: "" };
 
-    let walletConnect;
-    let pairingString = "";
+            function setupEvents() {
+                hashConnect.pairingEvent.on(pairingData => {
+                    statusMessage.textContent = "Pairing successful! Finalizing connection...";
+                    if (pairingData.accountIds && pairingData.accountIds.length > 0) {
+                        handleSuccessfulConnection(pairingData.accountIds[0]);
+                    }
+                });
 
-    async function initializeApp() {
-        try {
-            statusMessage.textContent = "Initializing...";
+                hashConnect.connectionStatusChangeEvent.on(status => {
+                    console.log("Connection status changed:", status);
+                });
+            }
             
-            // >>> REPLACE THIS WITH YOUR PROJECT ID FROM WALLETCONNECT CLOUD <<<
-            const projectId = "2798ba475f686a8e0ec83cc2cceb095b"; 
-            const appMetadata = {
-                name: "SkillSwap Marketplace",
-                description: "Decentralized skill marketplace",
-                url: "https://hederaskillswap.netlify.app",
-                icons: ["https://www.hedera.com/favicon.ico"]
-            };
+            async function initializeApp() {
+                try {
+                    if (typeof HashConnect === 'undefined') {
+                        throw new Error('HashConnect library failed to load.');
+                    }
+                    
+                    hashConnect = new HashConnect(true);
+                    
+                    // Set up events BEFORE initializing
+                    setupEvents();
 
-            // Initialize with the new library
-            walletConnect = new HederaWalletConnectJS({
-                projectId: projectId,
-                metadata: appMetadata,
-                network: "testnet"
-            });
-
-            // Check for existing connections
-            const savedPairings = walletConnect.getPairings();
-            if (savedPairings.length > 0) {
-                handleSuccessfulConnection(savedPairings[0].accountIds[0]);
-            } else {
-                showConnectionReady();
+                    const initData = await hashConnect.init(appMetadata, "testnet", false);
+                    
+                    if (initData.savedPairings.length > 0) {
+                        handleSuccessfulConnection(initData.savedPairings[0].accountIds[0]);
+                    } else {
+                        pairingStringEl.value = initData.pairingString;
+                        showConnectionOptions();
+                    }
+                } catch (error) {
+                    console.error("Initialization error:", error);
+                    // THIS IS THE CRITICAL PART: ALERT THE SPECIFIC ERROR
+                    alert(`Initialization Error: ${error.message}`);
+                    statusMessage.textContent = `Error: ${error.message}. Please screenshot the alert and send it.`;
+                    statusMessage.className = "status-message status-error";
+                }
             }
 
-        } catch (error) {
-            console.error("Initialization error:", error);
-            statusMessage.textContent = "Initialization failed. Please refresh.";
-            statusMessage.className = "status-message status-error";
-        }
-    }
+            function showConnectionOptions() {
+                statusMessage.textContent = "Ready to connect.";
+                statusMessage.className = "status-message status-info";
+                connectArea.style.display = 'block';
+                connectedArea.style.display = 'none';
+            }
 
-    async function showConnectionReady() {
-        statusMessage.textContent = "Ready to connect!";
-        connectionOptions.style.display = 'flex';
-    }
+            function handleSuccessfulConnection(accountId) {
+                state.accountId = accountId;
+                accountIdSpan.textContent = state.accountId;
+                connectArea.style.display = 'none';
+                connectedArea.style.display = 'block';
+                statusMessage.innerHTML = `<i class="fas fa-check-circle"></i> Wallet Connected!`;
+                statusMessage.className = "status-message status-success";
+            }
 
-    async function showQRCode() {
-        try {
-            statusMessage.textContent = "Generating QR code...";
-            // This creates a pairing and returns a URI for the QR code
-            const pairingUri = await walletConnect.createPairing();
-            pairingString = pairingUri;
-
-            const qrUrl = `https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(pairingUri)}`;
-            document.getElementById('qr-image').src = qrUrl;
-            qrContainer.style.display = 'block';
-            pairingContainer.style.display = 'none';
-            
-            // Listen for the connection
-            walletConnect.onPairing = (pairingData) => {
-                if (pairingData.accountIds && pairingData.accountIds.length > 0) {
-                    handleSuccessfulConnection(pairingData.accountIds[0]);
+            async function disconnectWallet() {
+                const pairings = hashConnect.hcData.pairingData;
+                if (pairings && pairings.length > 0) {
+                    await hashConnect.disconnect(pairings[0].topic);
                 }
-            };
-            
-        } catch (error) {
-            console.error("QR code error:", error);
-            statusMessage.textContent = "Failed to create connection.";
-        }
-    }
+                state.accountId = "";
+                // Clear UI and re-initialize to get a new pairing string
+                connectedArea.style.display = 'none';
+                statusMessage.textContent = 'Initializing...';
+                initializeApp();
+            }
 
-    function showPairingString() {
-        // For manual connection, you can still show the URI
-        if (pairingString) {
-            document.getElementById('pairing-string').value = pairingString;
-            pairingContainer.style.display = 'block';
-            qrContainer.style.display = 'none';
-        }
-    }
+            copyBtn.addEventListener('click', () => {
+                pairingStringEl.select();
+                document.execCommand('copy');
+                alert("Pairing code copied! Open HashPack, go to 'Connect DApp' and paste the code.");
+            });
+            disconnectBtn.addEventListener('click', disconnectWallet);
 
-    function copyPairingString() {
-        const input = document.getElementById('pairing-string');
-        input.select();
-        document.execCommand('copy');
-        alert("Connection string copied! You can use this in HashPack.");
-    }
-
-    function handleSuccessfulConnection(accountId) {
-        accountIdSpan.textContent = accountId;
-        connectionInfo.style.display = 'block';
-        connectionOptions.style.display = 'none';
-        qrContainer.style.display = 'none';
-        pairingContainer.style.display = 'none';
-        connectWalletBtn.style.display = 'none';
-        
-        statusMessage.innerHTML = `<i class="fas fa-check-circle"></i> Connected to Hedera!`;
-        statusMessage.className = "status-message status-success";
-    }
-
-    function disconnectWallet() {
-        if (walletConnect) {
-            walletConnect.disconnect();
-        }
-        // Reset UI
-        connectionInfo.style.display = 'none';
-        connectWalletBtn.style.display = 'block';
-        statusMessage.textContent = "Disconnected. Click 'Connect Wallet' to reconnect.";
-        statusMessage.className = "status-message status-info";
-    }
-
-    // Event listeners
-    connectWalletBtn.addEventListener('click', initializeApp);
-    document.getElementById('qr-btn').addEventListener('click', showQRCode);
-    document.getElementById('pairing-btn').addEventListener('click', showPairingString);
-    document.getElementById('copy-btn').addEventListener('click', copyPairingString);
-    disconnectBtn.addEventListener('click', disconnectWallet);
-
-    // Initialize on load
-    document.addEventListener('DOMContentLoaded', function() {
-        statusMessage.textContent = "Click 'Connect Wallet' to start";
-    });
-</script></body>
+            initializeApp();
+        });
+    </script>
+</body>
 </html>
