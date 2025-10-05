@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sanity Check</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 24px; }
+        .success { color: green; }
+        .fail { color: red; }
+    </style>
+</head>
+<body>
+    <h1 id="status">Testing Library Loading...</h1>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <script>
+        try {
+            // If jQuery loaded, the '$' object will exist.
+            if (window.jQuery) {
+                // Use jQuery to change the text.
+                $('#status').text('Sanity Check Passed: External scripts can be loaded.').addClass('success');
+            } else {
+                // If jQuery did not load, this will not run.
+                throw new Error("jQuery object not found.");
+            }
+        } catch (error) {
+            // If there's any error, it means the script failed.
+            document.getElementById('status').innerText = 'Sanity Check Failed: External scripts are being blocked.';
+            document.getElementById('status').className = 'fail';
+        }
+    </script>
+</body>
+</html>
