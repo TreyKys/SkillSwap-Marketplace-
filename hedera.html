@@ -4,11 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SkillSwap - Hedera</title>
-    <script>
-        if (window.location.protocol !== "https:") {
-            window.location.href = "https:" + window.location.href.substring(window.location.protocol.length);
-        }
-    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -54,7 +49,8 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/hashconnect@latest/dist/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hashconnect@2.1.2/dist/index.min.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const statusMessage = document.getElementById('status-message');
@@ -64,6 +60,13 @@
             const disconnectBtn = document.getElementById('disconnect-btn');
             const copyBtn = document.getElementById('copy-btn');
             const pairingStringEl = document.getElementById('pairing-string');
+
+            // *** FALLBACK CHECK TO ENSURE LIBRARY LOADED ***
+            if (typeof HashConnect === 'undefined') {
+                statusMessage.textContent = "Error: HashConnect library failed to load. Please check your network connection and refresh.";
+                statusMessage.className = "status-message status-error";
+                return; // Stop the script if the library is missing
+            }
 
             let hashConnect;
             let state = { accountId: "" };
@@ -76,16 +79,13 @@
                     }
                 });
             }
-
+            
             async function initializeApp() {
                 try {
-                    if (typeof HashConnect === 'undefined') {
-                        throw new Error('HashConnect library failed to load.');
-                    }
                     hashConnect = new HashConnect(true);
                     setupEvents();
                     const initData = await hashConnect.init(appMetadata, "testnet", false);
-
+                    
                     if (initData.savedPairings.length > 0) {
                         handleSuccessfulConnection(initData.savedPairings[0].accountIds[0]);
                     } else {
@@ -94,7 +94,7 @@
                     }
                 } catch (error) {
                     console.error("Initialization error:", error);
-                    statusMessage.textContent = `Error: ${error.message}. This app requires a secure (HTTPS) connection. Please check your URL.`;
+                    statusMessage.textContent = `Error: ${error.message}. Please use a normal (non-incognito) browser tab.`;
                     statusMessage.className = "status-message status-error";
                 }
             }
