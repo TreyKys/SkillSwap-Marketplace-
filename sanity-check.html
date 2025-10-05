@@ -2,33 +2,67 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sanity Check</title>
+    <title>HashConnect Barebones Test</title>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 24px; }
-        .success { color: green; }
-        .fail { color: red; }
+        body { font-family: sans-serif; padding: 20px; }
+        h1 { color: #333; }
+        #log { border: 1px solid #ccc; padding: 10px; background: #f9f9f9; white-space: pre-wrap; word-wrap: break-word; }
+        .error { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1 id="status">Testing Library Loading...</h1>
+    <h1>HashConnect Initialization Test</h1>
+    <div id="log"></div>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://unpkg.com/hashconnect@2.1.2/dist/index.js"></script>
 
     <script>
-        try {
-            // If jQuery loaded, the '$' object will exist.
-            if (window.jQuery) {
-                // Use jQuery to change the text.
-                $('#status').text('Sanity Check Passed: External scripts can be loaded.').addClass('success');
-            } else {
-                // If jQuery did not load, this will not run.
-                throw new Error("jQuery object not found.");
+        const logDiv = document.getElementById('log');
+
+        function log(message, isError = false) {
+            const p = document.createElement('p');
+            p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            if (isError) {
+                p.className = 'error';
             }
-        } catch (error) {
-            // If there's any error, it means the script failed.
-            document.getElementById('status').innerText = 'Sanity Check Failed: External scripts are being blocked.';
-            document.getElementById('status').className = 'fail';
+            logDiv.appendChild(p);
         }
+
+        async function runTest() {
+            log('Script started.');
+
+            if (typeof HashConnect === 'undefined') {
+                log('CRITICAL FAILURE: HashConnect object is not defined. The library failed to load.', true);
+                return;
+            }
+            log('SUCCESS: HashConnect library loaded.');
+
+            try {
+                log('Creating new HashConnect instance...');
+                const hashConnect = new HashConnect(true);
+                log('Instance created.');
+
+                const appMetadata = { name: "Test DApp", description: "A test", icon: "" };
+                log('App metadata defined.');
+
+                log('Setting up events...');
+                hashConnect.pairingEvent.on(data => {
+                    log('Pairing event fired!');
+                });
+                log('Events set up.');
+
+                log('Attempting to call hashConnect.init()...');
+                const initData = await hashConnect.init(appMetadata, "testnet", false);
+                log('SUCCESS: hashConnect.init() completed without error.');
+                log('Pairing String: ' + initData.pairingString);
+
+            } catch (error) {
+                log(`CRITICAL FAILURE during initialization: ${error.message}`, true);
+                console.error(error);
+            }
+        }
+
+        runTest();
     </script>
 </body>
 </html>
