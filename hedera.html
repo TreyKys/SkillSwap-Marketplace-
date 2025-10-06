@@ -6,7 +6,7 @@
     <title>SkillSwap - Hedera</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Poppins:wght@300;400;500;600&display-swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --hedera-green: #2DD87F; --hedera-dark: #1A1A1A; --white-glass: rgba(255, 255, 255, 0.98); }
@@ -34,66 +34,122 @@
             <div class="card">
                 <h3>Wallet Connection</h3>
                 <div id="status-message" class="status-message status-info">Ready to connect.</div>
-
-                <w3m-button></w3m-button>
-
+                
+                <div id="connect-area">
+                     <button id="connect-btn" class="hedera-button"><i class="fas fa-wallet"></i> Connect Wallet</button>
+                </div>
+                
                 <div id="connected-area" style="display: none;">
                     <p><strong>Connected Account:</strong></p>
                     <p id="account-id" style="font-weight: bold; word-break: break-all;"></p>
+                    <button id="disconnect-btn" class="hedera-button" style="background: #ff4444; color: white;">Disconnect</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        // 1. Import the official WalletConnect library
-        import { createWeb3Modal, defaultWagmiConfig } from 'https://esm.sh/@web3modal/wagmi'
-        import { mainnet, arbitrum } from 'https://esm.sh/viem/chains'
-        import { getAccount, watchAccount, disconnect } from 'https://esm.sh/@wagmi/core'
+    <script src="https://unpkg.com/@web3modal/standalone@3.4.0/dist/index.umd.js"></script>
+    
+    <script src="https://unpkg.com/@hashgraph/hedera-wallet-connect-v2-sdk/dist/main.umd.js"></script>
 
-        // 2. Get a Project ID at https://cloud.walletconnect.com
-        const projectId = 'd5b51a566a7b337836b6d51a6659f8a3' // This is a public demo ID, we can create our own later
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const connectBtn = document.getElementById('connect-btn');
+            const disconnectBtn = document.getElementById('disconnect-btn');
+            const connectArea = document.getElementById('connect-area');
+            const connectedArea = document.getElementById('connected-area');
+            const accountIdSpan = document.getElementById('account-id');
+            const statusMessage = document.getElementById('status-message');
 
-        // 3. Create modal and wagmi configuration
-        const metadata = {
-          name: 'SkillSwap Marketplace',
-          description: 'A skill marketplace on Hedera',
-          url: 'https://hederaskillswap.netlify.app',
-          icons: []
-        }
+            const projectId = 'd5b51a566a7b337836b6d51a6659f8a3'; // Public demo ID
 
-        const chains = [mainnet, arbitrum] // Required placeholder chains
-        const wagmiConfig = defaultWagmiConfig({ chains, projectId, metadata })
+            let web3modal;
+            let hederaWalletConnect;
 
-        createWeb3Modal({ wagmiConfig, projectId, chains })
+            function initialize() {
+                try {
+                    // 1. Create the Hedera WalletConnect Provider
+                    hederaWalletConnect = new HederaWalletConnectV2.HederaWalletConnect(
+                        projectId,
+                        {
+                            name: "SkillSwap Marketplace",
+                            description: "A skill marketplace on Hedera",
+                            url: "https://hederaskillswap.netlify.app",
+                            icons: []
+                        }
+                    );
 
-        // 4. App Logic
-        const connectedArea = document.getElementById('connected-area');
-        const accountIdSpan = document.getElementById('account-id');
-        const statusMessage = document.getElementById('status-message');
+                    // 2. Create the Web3Modal instance
+                    web3modal = new Web3Modal.Web3Modal({
+                        projectId,
+                        walletConnectVersion: 2
+                    });
 
-        function handleConnectionChange(account) {
-            if (account.isConnected) {
-                accountIdSpan.textContent = account.address;
+                    // 3. Set up event listener for when the modal closes
+                    web3modal.subscribeModal(state => {
+                        if (!state.open && !hederaWalletConnect.session) {
+                            // User closed the modal without connecting
+                            handleDisconnect();
+                        }
+                    });
+
+                    // 4. Set up event listener for successful pairing
+                    hederaWalletConnect.pairEvent.on(handleConnect);
+                    
+                    // 5. Check for existing sessions
+                    const existingSession = hederaWalletConnect.session;
+                    if (existingSession && existingSession.pairing) {
+                        handleConnect(existingSession.pairing.accountIds);
+                    }
+
+                } catch (error) {
+                    console.error("Initialization Failed:", error);
+                    statusMessage.textContent = `Error: ${error.message}`;
+                    statusMessage.className = 'status-message status-error';
+                }
+            }
+
+            async function onConnect() {
+                try {
+                    if (!hederaWalletConnect.session) {
+                        // This triggers the QR code modal
+                        const pairingData = await hederaWalletConnect.pair("hedera:296", ["hedera_signMessage"]); // 296 = testnet
+                        if (pairingData && pairingData.accountIds.length > 0) {
+                             handleConnect(pairingData.accountIds);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Connection Failed:", error);
+                    statusMessage.textContent = `Connection Error: ${error.message}`;
+                    statusMessage.className = 'status-message status-error';
+                }
+            }
+
+            function handleConnect(accountIds) {
+                const accountId = accountIds[0];
+                accountIdSpan.textContent = accountId;
+                connectArea.style.display = 'none';
                 connectedArea.style.display = 'block';
                 statusMessage.innerHTML = `<i class="fas fa-check-circle"></i> Wallet Connected!`;
                 statusMessage.className = "status-message status-success";
-            } else {
+                web3modal.closeModal();
+            }
+
+            async function handleDisconnect() {
+                await hederaWalletConnect.disconnect();
                 connectedArea.style.display = 'none';
+                connectArea.style.display = 'block';
                 statusMessage.textContent = 'Ready to connect.';
                 statusMessage.className = "status-message status-info";
             }
-        }
 
-        // --- Initialize the app ---
-
-        // Watch for changes (connecting, disconnecting) and update the UI
-        watchAccount(wagmiConfig, { onChange: handleConnectionChange })
-
-        // Also check the initial state on page load
-        const initialAccount = getAccount(wagmiConfig);
-        handleConnectionChange(initialAccount);
-
+            // --- Attach Event Listeners ---
+            connectBtn.addEventListener('click', onConnect);
+            disconnectBtn.addEventListener('click', handleDisconnect);
+            
+            // --- Initialize the App ---
+            initialize();
+        });
     </script>
 </body>
 </html>
