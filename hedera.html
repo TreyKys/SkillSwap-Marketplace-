@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillSwap - Hedera with AppKit</title>
+    <title>SkillSwap - Hedera</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Poppins:wght@300;400;500;600&display-swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root { --hedera-green: #2DD87F; --hedera-dark: #1A1A1A; --white-glass: rgba(255, 255, 255, 0.98); }
@@ -34,117 +34,65 @@
             <div class="card">
                 <h3>Wallet Connection</h3>
                 <div id="status-message" class="status-message status-info">Ready to connect.</div>
-                
-                <div id="connect-button-container"></div>
-                
+
+                <w3m-button></w3m-button>
+
                 <div id="connected-area" style="display: none;">
                     <p><strong>Connected Account:</strong></p>
                     <p id="account-id" style="font-weight: bold; word-break: break-all;"></p>
-                    <button id="disconnect-btn" class="hedera-button" style="background: #ff4444; color: white;">Disconnect</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script type="module">
-        // Import necessary functions from Reown AppKit using a CDN
-        import { createAppKit } from 'https://cdn.jsdelivr.net/npm/@reown/appkit@latest/dist/index.js';
-        import { UniversalConnector } from 'https://cdn.jsdelivr.net/npm/@reown/appkit-universal-connector@latest/dist/index.js';
+        // 1. Import the official WalletConnect library
+        import { createWeb3Modal, defaultWagmiConfig } from 'https://esm.sh/@web3modal/wagmi'
+        import { mainnet, arbitrum } from 'https://esm.sh/viem/chains'
+        import { getAccount, watchAccount, disconnect } from 'https://esm.sh/@wagmi/core'
 
-        // --- 1. CONFIGURATION ---
+        // 2. Get a Project ID at https://cloud.walletconnect.com
+        const projectId = 'd5b51a566a7b337836b6d51a6659f8a3' // This is a public demo ID, we can create our own later
 
-        // Get your project ID from https://dashboard.reown.com
-        const projectId = '2798ba475f686a8e0ec83cc2cceb095b';
-        if (projectId === 2798ba475f686a8e0ec83cc2cceb095b') {
-            alert('Please replace "2798ba475f686a8e0ec83cc2cceb095b" with your actual Project ID from dashboard.reown.com');
+        // 3. Create modal and wagmi configuration
+        const metadata = {
+          name: 'SkillSwap Marketplace',
+          description: 'A skill marketplace on Hedera',
+          url: 'https://hederaskillswap.netlify.app',
+          icons: []
         }
 
-        // Define the Hedera Testnet configuration
-        const hederaTestnet = {
-            id: '296', // Hedera Testnet Chain ID
-            chainNamespace: 'hedera',
-            caipNetworkId: 'hedera:testnet',
-            name: 'Hedera Testnet',
-            nativeCurrency: { name: 'HBAR', symbol: 'HBAR', decimals: 8 },
-            rpcUrls: { default: { http: ['https://testnet.hashio.io/api'] } } // Public RPC
-        };
+        const chains = [mainnet, arbitrum] // Required placeholder chains
+        const wagmiConfig = defaultWagmiConfig({ chains, projectId, metadata })
 
-        // --- 2. INITIALIZE APPKIT ---
+        createWeb3Modal({ wagmiConfig, projectId, chains })
 
-        let universalConnector;
-        let modal;
+        // 4. App Logic
+        const connectedArea = document.getElementById('connected-area');
+        const accountIdSpan = document.getElementById('account-id');
+        const statusMessage = document.getElementById('status-message');
 
-        async function initializeAppKit() {
-            try {
-                // Initialize the Universal Connector for custom chains
-                universalConnector = await UniversalConnector.init({
-                    projectId,
-                    metadata: {
-                        name: 'SkillSwap Marketplace',
-                        description: 'A skill marketplace on Hedera',
-                        url: 'https://hederaskillswap.netlify.app',
-                        icons: []
-                    },
-                    // Configure the connector for the Hedera namespace
-                    networks: [{
-                        methods: ['hedera_signMessage', 'hedera_sendTransaction'],
-                        chains: [hederaTestnet],
-                        events: ['hedera_chainChanged'],
-                        namespace: 'hedera'
-                    }]
-                });
-
-                // Create the AppKit modal instance
-                modal = createAppKit({
-                    adapters: [universalConnector],
-                    networks: [hederaTestnet],
-                    projectId,
-                    features: {
-                        analytics: true
-                    }
-                });
-                
-                // --- 3. UI LOGIC ---
-
-                const connectContainer = document.getElementById('connect-button-container');
-                const connectedArea = document.getElementById('connected-area');
-                const accountIdSpan = document.getElementById('account-id');
-                const disconnectBtn = document.getElementById('disconnect-btn');
-                const statusMessage = document.getElementById('status-message');
-
-                // Create and inject the AppKit button
-                const appkitButton = document.createElement('appkit-button');
-                connectContainer.appendChild(appkitButton);
-
-                // Listen for account changes
-                modal.subscribeAccount(state => {
-                    if (state.address) {
-                        accountIdSpan.textContent = state.address;
-                        connectContainer.style.display = 'none';
-                        connectedArea.style.display = 'block';
-                        statusMessage.innerHTML = `<i class="fas fa-check-circle"></i> Wallet Connected!`;
-                        statusMessage.className = "status-message status-success";
-                    } else {
-                        connectContainer.style.display = 'block';
-                        connectedArea.style.display = 'none';
-                        statusMessage.textContent = 'Ready to connect.';
-                        statusMessage.className = "status-message status-info";
-                    }
-                });
-
-                // Handle disconnect
-                disconnectBtn.addEventListener('click', () => {
-                    modal.disconnect();
-                });
-
-            } catch (error) {
-                console.error("AppKit Initialization Error:", error);
-                document.getElementById('status-message').textContent = `Error: ${error.message}`;
-                document.getElementById('status-message').className = 'status-message status-error';
+        function handleConnectionChange(account) {
+            if (account.isConnected) {
+                accountIdSpan.textContent = account.address;
+                connectedArea.style.display = 'block';
+                statusMessage.innerHTML = `<i class="fas fa-check-circle"></i> Wallet Connected!`;
+                statusMessage.className = "status-message status-success";
+            } else {
+                connectedArea.style.display = 'none';
+                statusMessage.textContent = 'Ready to connect.';
+                statusMessage.className = "status-message status-info";
             }
         }
 
-        initializeApp();
+        // --- Initialize the app ---
+
+        // Watch for changes (connecting, disconnecting) and update the UI
+        watchAccount(wagmiConfig, { onChange: handleConnectionChange })
+
+        // Also check the initial state on page load
+        const initialAccount = getAccount(wagmiConfig);
+        handleConnectionChange(initialAccount);
 
     </script>
 </body>
